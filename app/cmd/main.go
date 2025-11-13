@@ -40,6 +40,8 @@ func main() {
 	mainLogger.Debug("creating storage instanse")
 	db, err := pgsql.NewDB(context.Background(), cfg.ConnString())
 
+	storage := pgsql.NewStorage(db)
+
 	// TODO: Создаём fiber.App и привязываем хэндлеры к эндпоинтам
 
 	// TODO: Слушаем адрес из конфигов
