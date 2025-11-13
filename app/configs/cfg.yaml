@@ -1,0 +1,10 @@
+db:
+  host: "127.0.0.1"
+  port: 5432
+  user: "myuser"
+  password: "mypass"
+  db_name: "pr_db"
+
+api:
+  host: "127.0.0.1"
+  port: 8080
