@@ -1,11 +1,37 @@
 package handlers
 
-import "github.com/qurk0/pr-service/internal/domain/services"
+import (
+	"context"
 
-type UserHandler struct {
-	serv *services.UserService
+	"github.com/gofiber/fiber/v2"
+	"github.com/qurk0/pr-service/internal/api/dto"
+)
+
+type UserService interface {
+	SetIsActive(ctx context.Context, username string, active bool) error
+	GetReview(ctx context.Context, username string) error
 }
 
-func NewUserHandler(service *services.UserService) *UserHandler {
+type UserHandler struct {
+	serv UserService
+}
+
+func NewUserHandler(service UserService) *UserHandler {
 	return &UserHandler{serv: service}
+}
+
+/*
+	app.Get("/users/getReview")
+	app.Post("/users/setIsActive")
+*/
+
+// func (uh *UserHandler) GetReview(c *fiber.Ctx) error {
+
+// }
+
+func (uh *UserHandler) SetIsActive(c *fiber.Ctx) error {
+	var req dto.SetIsActiveRequest
+	if err := c.BodyParser(&req); err != nil {
+		return dto.ReturnError("bad_request", "invalid json body")
+	}
 }
