@@ -6,7 +6,9 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/gofiber/fiber/v2"
 	"github.com/qurk0/pr-service/internal/config"
+	"github.com/qurk0/pr-service/internal/domain/services"
 	"github.com/qurk0/pr-service/internal/storage/pgsql"
 )
 
@@ -29,20 +31,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	// TODO: Запускаем логгер
+	// Запускаем логгер
 	// В рамках тестового задания это будет log/slog с выводом в терминал
-	// В docker compose будет переменная окружения LOGLEVEL
 	logger := newLogger(cfg.LogLevel)
 	mainLogger := logger.With("op", "cmd.main")
 	mainLogger.Debug("debug messages are enable")
 
-	// TODO: Создаём инстанс стореджа
+	// Создаём инстанс стореджа
 	mainLogger.Debug("creating storage instanse")
 	db, err := pgsql.NewDB(context.Background(), cfg.ConnString())
 
+	// Тут создаём структуру Storage, которая хранит в себе 3 репозитория для работы с юзерами, тимами и ПР'ами, всё в одном месте для удобства
 	storage := pgsql.NewStorage(db)
 
+	// Создаём инстанс сервисов, storage будет реализовывать методы интерфейсов сервисов
+	servs := services.NewServices(storage)
+
 	// TODO: Создаём fiber.App и привязываем хэндлеры к эндпоинтам
+	app := fiber.New()
 
 	// TODO: Слушаем адрес из конфигов
 
@@ -50,6 +56,7 @@ func main() {
 }
 
 // По умолчанию уровень логирования - info
+// Подробнее про уровня логирования - в README.md
 func newLogger(logLevel string) *slog.Logger {
 	switch logLevel {
 	case LevelDebug:

@@ -4,6 +4,6 @@ type TeamRepository struct {
 	db *PgDB
 }
 
-func NewTeamRepo(db *PgDB) *TeamRepository {
+func newTeamRepo(db *PgDB) *TeamRepository {
 	return &TeamRepository{db: db}
 }

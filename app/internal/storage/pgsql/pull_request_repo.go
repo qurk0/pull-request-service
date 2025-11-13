@@ -4,6 +4,6 @@ type PullRequestRepository struct {
 	db *PgDB
 }
 
-func NewPullRequestRepo(db *PgDB) *PullRequestRepository {
+func newPullRequestRepo(db *PgDB) *PullRequestRepository {
 	return &PullRequestRepository{db: db}
 }

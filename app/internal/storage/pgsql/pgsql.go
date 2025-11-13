@@ -47,8 +47,8 @@ type Storage struct {
 
 func NewStorage(db *PgDB) *Storage {
 	return &Storage{
-		User:        NewUserRepo(db),
-		Team:        NewTeamRepo(db),
-		PullRequest: NewPullRequestRepo(db),
+		User:        newUserRepo(db),
+		Team:        newTeamRepo(db),
+		PullRequest: newPullRequestRepo(db),
 	}
 }

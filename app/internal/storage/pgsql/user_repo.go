@@ -4,6 +4,6 @@ type UserRepository struct {
 	db *PgDB
 }
 
-func NewUserRepo(db *PgDB) *UserRepository {
+func newUserRepo(db *PgDB) *UserRepository {
 	return &UserRepository{db: db}
 }
