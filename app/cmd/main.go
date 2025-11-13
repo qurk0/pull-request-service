@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/qurk0/pr-service/internal/api/handlers"
 	"github.com/qurk0/pr-service/internal/config"
 	"github.com/qurk0/pr-service/internal/domain/services"
 	"github.com/qurk0/pr-service/internal/storage/pgsql"
@@ -27,7 +28,7 @@ func main() {
 	// TODO: Читаем конфиги (либа cleanenv)
 	cfg, err := config.Load(cfgPath)
 	if err != nil {
-		log.Fatalf("failed to read configs: %w", err)
+		log.Fatalf("failed to read configs: %v", err)
 		os.Exit(1)
 	}
 
@@ -47,10 +48,18 @@ func main() {
 	// Создаём инстанс сервисов, storage будет реализовывать методы интерфейсов сервисов
 	servs := services.NewServices(storage)
 
+	// Создаём хэндлеры
+	router := handlers.NewRouter(servs)
+
 	// TODO: Создаём fiber.App и привязываем хэндлеры к эндпоинтам
 	app := fiber.New()
+	router.RegRoutes(app)
 
 	// TODO: Слушаем адрес из конфигов
+	if err := app.Listen(cfg.ListenAddr()); err != nil {
+		logger.Error("failed to start listening addr", slog.String("err", err.Error()))
+		os.Exit(1)
+	}
 
 	// TODO: Graceful Shutdown
 }
