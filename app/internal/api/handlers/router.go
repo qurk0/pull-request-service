@@ -69,11 +69,19 @@ func writeError(c *fiber.Ctx, err error) error {
 			},
 		})
 
-	case errors.Is(err, models.ErrAlreadyExists):
-		return c.Status(fiber.StatusConflict).JSON(dto.ErrorResponse{
+	case errors.Is(err, models.ErrTeamExists):
+		return c.Status(fiber.StatusBadRequest).JSON(dto.ErrorResponse{
 			Error: dto.HttpError{
 				Code:    dto.ErrCodeTeamExists,
 				Message: "team_name already exists",
+			},
+		})
+
+	case errors.Is(err, models.ErrPRExists):
+		return c.Status(fiber.StatusConflict).JSON(dto.ErrorResponse{
+			Error: dto.HttpError{
+				Code:    dto.ErrCodePrExists,
+				Message: "PR id already exists",
 			},
 		})
 

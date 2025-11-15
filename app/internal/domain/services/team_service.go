@@ -24,5 +24,13 @@ func (s *TeamService) CheckTeamExists(ctx context.Context, teamName string) (boo
 }
 
 func (s *TeamService) CreateTeamWithMembers(ctx context.Context, teamName string, members []models.TeamMember) (models.Team, error) {
+	exists, err := s.repo.CheckTeamExists(ctx, teamName)
+	if err != nil {
+		return models.Team{}, err
+	}
+	if exists {
+		return models.Team{}, models.ErrTeamExists
+	}
+
 	return s.repo.CreateTeamWithMembers(ctx, teamName, members)
 }

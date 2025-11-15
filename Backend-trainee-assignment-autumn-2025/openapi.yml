@@ -43,7 +43,6 @@ components:
                 - NOT_ASSIGNED
                 - NO_CANDIDATE
                 - NOT_FOUND
-                - UNAUTHORIZED
             message:
               type: string
       example:
@@ -162,7 +161,7 @@ paths:
                     - user_id: u2
                       username: Bob
                       is_active: true
-        '409':
+        '400':
           description: Команда уже существует
           content:
             application/json:
@@ -176,9 +175,6 @@ paths:
     get:
       tags: [Teams]
       summary: Получить команду с участниками
-      security:
-        - AdminToken: []
-        - UserToken: []
       parameters:
         - $ref: '#/components/parameters/TeamNameQuery'
       responses:
@@ -202,18 +198,11 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ErrorResponse' }
-        '401':
-          description: Нет/неверный токен доступа
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
 
   /users/setIsActive:
     post:
       tags: [Users]
       summary: Установить флаг активности пользователя
-      security:
-        - AdminToken: []
       requestBody:
         required: true
         content:
@@ -250,18 +239,11 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ErrorResponse' }
-        '401':
-          description: Нет/неверный админский токен
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
 
   /pullRequest/create:
     post:
       tags: [PullRequests]
       summary: Создать PR и автоматически назначить до 2 ревьюверов из команды автора
-      security:
-        - AdminToken: []
       requestBody:
         required: true
         content:
@@ -294,11 +276,6 @@ paths:
                   author_id: u1
                   status: OPEN
                   assigned_reviewers: [u2, u3]
-        '401':
-          description: Нет/неверный админский токен
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
         '404':
           description: Автор/команда не найдены
           content:
@@ -311,13 +288,11 @@ paths:
               schema: { $ref: '#/components/schemas/ErrorResponse' }
               example:
                 error: { code: PR_EXISTS, message: PR id already exists }
-  
+
   /pullRequest/merge:
     post:
       tags: [PullRequests]
       summary: Пометить PR как MERGED (идемпотентная операция)
-      security:
-        - AdminToken: []
       requestBody:
         required: true
         content:
@@ -347,11 +322,6 @@ paths:
                   status: MERGED
                   assigned_reviewers: [u2, u3]
                   mergedAt: 2025-10-24T12:34:56Z
-        '401':
-          description: Нет/неверный админский токен
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
         '404':
           description: PR не найден
           content:
@@ -362,8 +332,6 @@ paths:
     post:
       tags: [PullRequests]
       summary: Переназначить конкретного ревьювера на другого из его команды
-      security:
-        - AdminToken: []
       requestBody:
         required: true
         content:
@@ -376,7 +344,7 @@ paths:
                 old_user_id: { type: string }
             example:
               pull_request_id: pr-1001
-              old_user_id: u2
+              old_reviewer_id: u2
       responses:
         '200':
           description: Переназначение выполнено
@@ -422,19 +390,11 @@ paths:
                   summary: Нет доступных кандидатов
                   value:
                     error: { code: NO_CANDIDATE, message: no active replacement candidate in team }
-        '401':
-          description: Нет/неверный админский токен
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
 
   /users/getReview:
     get:
       tags: [Users]
       summary: Получить PR'ы, где пользователь назначен ревьювером
-      security:
-        - AdminToken: []
-        - UserToken: []
       parameters:
         - $ref: '#/components/parameters/UserIdQuery'
       responses:
@@ -459,8 +419,3 @@ paths:
                     pull_request_name: Add search
                     author_id: u1
                     status: OPEN
-        '401':
-          description: Нет/неверный токен доступа
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }

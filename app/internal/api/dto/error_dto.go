@@ -14,13 +14,12 @@ package dto
 type ErrCode string
 
 const (
-	ErrCodeTeamExists   ErrCode = "TEAM_EXISTS"
-	ErrCodePrExists     ErrCode = "PR_EXISTS"
-	ErrCodePrMerged     ErrCode = "PR_MERGED"
-	ErrCodeNotAssigned  ErrCode = "NOT_ASSIGNED"
-	ErrCodeNoCandidate  ErrCode = "NO_CANDIDATE"
-	ErrCodeNotFound     ErrCode = "NOT_FOUND"
-	ErrCodeUnauthorized ErrCode = "UNAUTHORIZED"
+	ErrCodeTeamExists  ErrCode = "TEAM_EXISTS"
+	ErrCodePrExists    ErrCode = "PR_EXISTS"
+	ErrCodePrMerged    ErrCode = "PR_MERGED"
+	ErrCodeNotAssigned ErrCode = "NOT_ASSIGNED"
+	ErrCodeNoCandidate ErrCode = "NO_CANDIDATE"
+	ErrCodeNotFound    ErrCode = "NOT_FOUND"
 )
 
 type ErrorResponse struct {

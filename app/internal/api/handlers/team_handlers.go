@@ -17,9 +17,8 @@ func NewTeamHandler(tService TeamService) *TeamHandler {
 
 func (h *TeamHandler) GetTeam(c *fiber.Ctx) error {
 	teamName := c.Query("team_name", "")
-	// Тут должна быть проверка на наличие teamName, но по документации это поле required
+	// По документации написано, что 400 не возвращаем - считаю все запросы валидными.
 
-	// Если команды нет - ошибка из сервиса будет либо 404, либо 5хх
 	exists, err := h.teamServ.CheckTeamExists(c.UserContext(), teamName)
 	if err != nil {
 		return writeError(c, err)
@@ -54,9 +53,11 @@ func (h *TeamHandler) GetTeam(c *fiber.Ctx) error {
 
 func (h *TeamHandler) AddTeam(c *fiber.Ctx) error {
 	var req dto.AddTeamRequest
-	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).SendString("invalid request body")
-	}
+	_ = c.BodyParser(&req)
+	//	По документации написано, что 400 не возвращаем - считаю все запросы валидными.
+	//  if err != nil {
+	// 	return c.Status(fiber.StatusBadRequest).SendString("invalid request body")
+	// }
 
 	members := membersDTOtoModel(req.Members)
 

@@ -16,9 +16,11 @@ func NewUserHandler(uServ UserService, prServ PRService) *UserHandler {
 
 func (h *UserHandler) SetIsActive(c *fiber.Ctx) error {
 	var req dto.SetIsActiveRequest
-	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).SendString("invalid request body")
-	}
+	_ = c.BodyParser(&req)
+	// По документации написано, что 400 не возвращаем - считаю все запросы валидными.
+	// if err != nil {
+	// 	return c.Status(fiber.StatusBadRequest).SendString("invalid request body")
+	// }
 
 	user, err := h.userServ.SetIsActive(c.UserContext(), req.UserId, req.IsActive)
 	if err != nil {
@@ -41,7 +43,7 @@ func (h *UserHandler) SetIsActive(c *fiber.Ctx) error {
 
 func (h *UserHandler) GetReview(c *fiber.Ctx) error {
 	userID := c.Query("user_id", "")
-	// Тут должна быть проверка на наличие userID, но по документации это поле required
+	// По документации написано, что 400 не возвращаем - считаю все запросы валидными.
 
 	prShortList, err := h.prServ.GetByReviewer(c.UserContext(), userID)
 	if err != nil {
