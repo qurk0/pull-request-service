@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 
 	"github.com/gofiber/fiber/v2"
@@ -13,6 +14,19 @@ type Router struct {
 	User *UserHandler
 	Team *TeamHandler
 	PR   *PRHandler
+}
+
+type UserService interface {
+	SetIsActive(ctx context.Context, userID string, active bool) (*models.User, error)
+	GetTeamMembers(ctx context.Context, teamName string) ([]*models.TeamMember, error)
+}
+
+type PRService interface {
+	GetByReviewer(ctx context.Context, userID string) ([]*models.PRShort, error)
+}
+
+type TeamService interface {
+	CheckTeamExists(ctx context.Context, teamName string) error
 }
 
 func NewRouter(servs *services.Services) *Router {

@@ -8,8 +8,8 @@ import (
 
 const (
 	GetByReviewerQuery = `SELECT id, pull_request_name, author_id, status
-	FROM pull_requests AS pr
-	JOIN pull_requests_reviewers AS prr
+	FROM pull_requests pr
+	JOIN pull_requests_reviewers prr
 		ON pr.id = prr.pull_request_id
 	WHERE prr.reviewer_id = $1;
 	`
@@ -30,7 +30,7 @@ func (r *PullRequestRepository) GetByReviewer(ctx context.Context, userID string
 	}
 	defer rows.Close()
 
-	prs := make([]*models.PRShort, 0)
+	prList := make([]*models.PRShort, 0)
 	for rows.Next() {
 		pr := new(models.PRShort)
 
@@ -45,12 +45,12 @@ func (r *PullRequestRepository) GetByReviewer(ctx context.Context, userID string
 			return nil, mapErr(err)
 		}
 
-		prs = append(prs, pr)
+		prList = append(prList, pr)
 	}
 
 	if rows.Err() != nil {
 		return nil, mapErr(rows.Err())
 	}
 
-	return prs, nil
+	return prList, nil
 }

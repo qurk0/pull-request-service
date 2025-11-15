@@ -16,6 +16,11 @@ const (
 	SET is_active = $2
 	WHERE id = $1;
 	`
+
+	GetTeamMembersQuery = `SELECT id, username, is_active
+	FROM users
+	WHERE team_name = $1;
+	`
 )
 
 type UserRepository struct {
@@ -48,4 +53,29 @@ func (r *UserRepository) UpdateUserIsActive(ctx context.Context, user *models.Us
 	}
 
 	return nil
+}
+
+func (r *UserRepository) GetTeamMembers(ctx context.Context, teamName string) ([]*models.TeamMember, error) {
+	rows, err := r.db.pool.Query(ctx, GetTeamMembersQuery, teamName)
+	if err != nil {
+		return nil, mapErr(err)
+	}
+	memberList := make([]*models.TeamMember, 0)
+
+	for rows.Next() {
+		mem := new(models.TeamMember)
+
+		err := rows.Scan(&mem.Id, &mem.Username, &mem.IsActive)
+		if err != nil {
+			return nil, mapErr(err)
+		}
+
+		memberList = append(memberList, mem)
+	}
+
+	if rows.Err() != nil {
+		return nil, mapErr(rows.Err())
+	}
+
+	return memberList, nil
 }
