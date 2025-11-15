@@ -11,8 +11,11 @@ type TeamHandler struct {
 	userServ UserService
 }
 
-func NewTeamHandler(tService TeamService) *TeamHandler {
-	return &TeamHandler{teamServ: tService}
+func NewTeamHandler(tService TeamService, uService UserService) *TeamHandler {
+	return &TeamHandler{
+		teamServ: tService,
+		userServ: uService,
+	}
 }
 
 func (h *TeamHandler) GetTeam(c *fiber.Ctx) error {

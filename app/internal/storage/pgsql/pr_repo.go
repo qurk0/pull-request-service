@@ -36,6 +36,13 @@ const (
 	GetReviewersQuery = `SELECT reviewer_id
 	FROM pull_requests_reviewers
 	WHERE pull_request_id = $1;`
+
+	MergePRQuery = `UPDATE pull_requests
+	SET 
+		status = 'MERGED',
+		merged_at = COALESCE(merged_at, NOW())
+	WHERE id = $1
+	RETURNING id, pull_request_name, author_id, status, created_at, merged_at;`
 )
 
 type PullRequestRepository struct {
@@ -195,4 +202,43 @@ func (r *PullRequestRepository) ReassignPRReviewer(ctx context.Context, prID, ol
 	}
 
 	return pr, reviewers, nil
+}
+
+func (r *PullRequestRepository) GetPRReviewers(ctx context.Context, prID string) ([]string, error) {
+	rows, err := r.db.pool.Query(ctx, GetReviewersQuery, prID)
+	if err != nil {
+		return nil, mapErr(err)
+	}
+	defer rows.Close()
+
+	var reviewers []string
+	for rows.Next() {
+		var id string
+		err := rows.Scan(&id)
+		if err != nil {
+			return nil, mapErr(err)
+		}
+		reviewers = append(reviewers, id)
+	}
+
+	if rows.Err() != nil {
+		return nil, mapErr(rows.Err())
+	}
+
+	return reviewers, nil
+}
+func (r *PullRequestRepository) MergePR(ctx context.Context, prID string) (models.PR, error) {
+	var pr models.PR
+
+	err := r.db.pool.QueryRow(ctx, MergePRQuery, prID).Scan(&pr.PRID,
+		&pr.PRName,
+		&pr.AuthorID,
+		&pr.Status,
+		&pr.CreatedAt,
+		&pr.MergedAt)
+	if err != nil {
+		return models.PR{}, mapErr(err)
+	}
+
+	return pr, nil
 }

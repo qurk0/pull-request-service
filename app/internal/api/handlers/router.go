@@ -26,6 +26,7 @@ type PRService interface {
 	GetByReviewer(ctx context.Context, userID string) ([]models.PRShort, error)
 	CreatePR(ctx context.Context, prID, prNamme, authorID string) (models.PR, error)
 	ReassignPR(ctx context.Context, prID, oldReviewerID string) (models.PR, string, error)
+	MergePR(ctx context.Context, prID string) (models.PR, error)
 }
 
 type TeamService interface {
@@ -36,21 +37,21 @@ type TeamService interface {
 func NewRouter(servs *services.Services) *Router {
 	return &Router{
 		User: NewUserHandler(servs.User, servs.PR),
-		Team: NewTeamHandler(servs.Team),
+		Team: NewTeamHandler(servs.Team, servs.User),
 		PR:   NewPRHandler(servs.PR),
 	}
 }
 
 func (r *Router) RegRoutes(app *fiber.App) {
-	app.Post("/team/add")
-	app.Get("/team/get")
+	app.Post("/team/add", r.Team.AddTeam)
+	app.Get("/team/get", r.Team.GetTeam)
 
-	app.Get("/users/getReview")
-	app.Post("/users/setIsActive")
+	app.Get("/users/getReview", r.User.GetReview)
+	app.Post("/users/setIsActive", r.User.SetIsActive)
 
-	app.Post("/pullRequest/create")
-	app.Post("/pullRequest/merge")
-	app.Post("/pullRequest/reassign")
+	app.Post("/pullRequest/create", r.PR.CreatePR)
+	app.Post("/pullRequest/merge", r.PR.Merge)
+	app.Post("/pullRequest/reassign", r.PR.Reassign)
 }
 
 func writeError(c *fiber.Ctx, err error) error {

@@ -12,6 +12,8 @@ type PullRequestRepo interface {
 	CreatePR(ctx context.Context, prID, prNamme, authorID string, reviewers []string) (models.PR, error)
 	GetPRByID(ctx context.Context, prID string) (models.PR, error)
 	ReassignPRReviewer(ctx context.Context, prID, oldReviewerID, newReviewerID string) (models.PR, []string, error)
+	GetPRReviewers(ctx context.Context, prID string) ([]string, error)
+	MergePR(ctx context.Context, prID string) (models.PR, error)
 }
 
 type PullRequestService struct {
@@ -19,8 +21,11 @@ type PullRequestService struct {
 	uServ *UserService
 }
 
-func newPullRequestService(repo PullRequestRepo) *PullRequestService {
-	return &PullRequestService{repo: repo}
+func newPullRequestService(repo PullRequestRepo, uServ *UserService) *PullRequestService {
+	return &PullRequestService{
+		repo:  repo,
+		uServ: uServ,
+	}
 }
 
 func (s *PullRequestService) GetByReviewer(ctx context.Context, userID string) ([]models.PRShort, error) {
@@ -73,6 +78,21 @@ func (s *PullRequestService) ReassignPR(ctx context.Context, prID, oldReviewerID
 	newPr.AssignedReviewers = newReviewers
 
 	return newPr, newReviewerID, nil
+}
+
+func (s *PullRequestService) MergePR(ctx context.Context, prID string) (models.PR, error) {
+	newPr, err := s.repo.MergePR(ctx, prID)
+	if err != nil {
+		return models.PR{}, err
+	}
+
+	reviewers, err := s.repo.GetPRReviewers(ctx, prID)
+	if err != nil {
+		return models.PR{}, err
+	}
+
+	newPr.AssignedReviewers = reviewers
+	return newPr, nil
 }
 
 func getReviewers(candidates []string) []string {

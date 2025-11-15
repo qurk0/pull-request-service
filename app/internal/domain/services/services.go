@@ -16,6 +16,6 @@ func NewServices(uRepo UserRepo, tRepo TeamRepo, prRepo PullRequestRepo) *Servic
 	return &Services{
 		User: newUserService(uRepo),
 		Team: newTeamService(tRepo),
-		PR:   newPullRequestService(prRepo),
+		PR:   newPullRequestService(prRepo, newUserService(uRepo)),
 	}
 }
