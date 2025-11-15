@@ -2,9 +2,11 @@ package pgsql
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/qurk0/pr-service/internal/domain/models"
 )
 
@@ -48,6 +50,12 @@ func (r *TeamRepository) CreateTeamWithMembers(ctx context.Context, teamName str
 	defer tx.Rollback(ctx)
 
 	if _, err := tx.Exec(ctx, CreateTeamQuery, teamName); err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			if pgErr.Code == "23505" {
+				return models.Team{}, models.ErrTeamExists
+			}
+		}
 		return models.Team{}, mapErr(err)
 	}
 
