@@ -21,6 +21,12 @@ const (
 	FROM users
 	WHERE team_name = $1;
 	`
+
+	GetActiveUsersQuery = `SELECT id 
+	FROM users
+	WHERE team_name = $1
+		AND id <> $2
+		AND is_active = TRUE;`
 )
 
 type UserRepository struct {
@@ -60,6 +66,8 @@ func (r *UserRepository) GetTeamMembers(ctx context.Context, teamName string) ([
 	if err != nil {
 		return nil, mapErr(err)
 	}
+	defer rows.Close()
+
 	memberList := make([]models.TeamMember, 0)
 
 	for rows.Next() {
@@ -79,4 +87,30 @@ func (r *UserRepository) GetTeamMembers(ctx context.Context, teamName string) ([
 
 	return memberList, nil
 
+}
+
+func (r *UserRepository) GetReviewers(ctx context.Context, userID, teamName string) ([]string, error) {
+	rows, err := r.db.pool.Query(ctx, GetActiveUsersQuery, teamName, userID)
+	if err != nil {
+		return nil, mapErr(err)
+	}
+	defer rows.Close()
+
+	var reviewers []string
+
+	for rows.Next() {
+		var id string
+		err := rows.Scan(&id)
+		if err != nil {
+			return nil, mapErr(err)
+		}
+
+		reviewers = append(reviewers, id)
+	}
+
+	if rows.Err() != nil {
+		return nil, mapErr(rows.Err())
+	}
+
+	return reviewers, nil
 }

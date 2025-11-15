@@ -10,6 +10,7 @@ type UserRepo interface {
 	GetUser(ctx context.Context, userID string) (models.User, error)
 	UpdateUserIsActive(ctx context.Context, userID string, isActive bool) error
 	GetTeamMembers(ctx context.Context, teamName string) ([]models.TeamMember, error)
+	GetReviewers(ctx context.Context, userID, teamName string) ([]string, error)
 }
 
 type UserService struct {
@@ -36,4 +37,12 @@ func (s *UserService) SetIsActive(ctx context.Context, userID string, active boo
 
 func (s *UserService) GetTeamMembers(ctx context.Context, teamName string) ([]models.TeamMember, error) {
 	return s.repo.GetTeamMembers(ctx, teamName)
+}
+
+func (s *UserService) GetUser(ctx context.Context, userID string) (models.User, error) {
+	return s.repo.GetUser(ctx, userID)
+}
+
+func (s *UserService) GetReviewers(ctx context.Context, userID, teamName string) ([]string, error) {
+	return s.repo.GetReviewers(ctx, userID, teamName)
 }

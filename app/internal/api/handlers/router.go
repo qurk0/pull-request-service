@@ -19,10 +19,13 @@ type Router struct {
 type UserService interface {
 	SetIsActive(ctx context.Context, userID string, active bool) (models.User, error)
 	GetTeamMembers(ctx context.Context, teamName string) ([]models.TeamMember, error)
+	GetUser(ctx context.Context, userID string) (models.User, error)
 }
 
 type PRService interface {
 	GetByReviewer(ctx context.Context, userID string) ([]models.PRShort, error)
+	CreatePR(ctx context.Context, prID, prNamme, authorID string) (models.PR, error)
+	ReassignPR(ctx context.Context, prID, oldReviewerID string) (models.PR, string, error)
 }
 
 type TeamService interface {

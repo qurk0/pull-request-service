@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 type PRStatus string
 
 const (
@@ -12,4 +14,14 @@ type PRShort struct {
 	PRName   string
 	AuthorID string
 	Status   PRStatus
+}
+
+type PR struct {
+	PRID              string
+	PRName            string
+	AuthorID          string
+	Status            PRStatus
+	AssignedReviewers []string
+	CreatedAt         time.Time
+	MergedAt          time.Time
 }
