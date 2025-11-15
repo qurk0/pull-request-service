@@ -23,5 +23,5 @@ type PR struct {
 	Status            PRStatus
 	AssignedReviewers []string
 	CreatedAt         time.Time
-	MergedAt          time.Time
+	MergedAt          *time.Time
 }

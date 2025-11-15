@@ -10,6 +10,8 @@ import (
 type PullRequestRepo interface {
 	GetByReviewer(ctx context.Context, userID string) ([]models.PRShort, error)
 	CreatePR(ctx context.Context, prID, prNamme, authorID string, reviewers []string) (models.PR, error)
+	GetPRByID(ctx context.Context, prID string) (models.PR, error)
+	ReassignPRReviewer(ctx context.Context, prID, oldReviewerID, newReviewerID string) (models.PR, []string, error)
 }
 
 type PullRequestService struct {
@@ -40,6 +42,37 @@ func (s *PullRequestService) CreatePR(ctx context.Context, prID, prNamme, author
 	reviewers := getReviewers(candidates)
 
 	return s.repo.CreatePR(ctx, prID, prNamme, authorID, reviewers)
+}
+
+func (s *PullRequestService) ReassignPR(ctx context.Context, prID, oldReviewerID string) (models.PR, string, error) {
+	pr, err := s.repo.GetPRByID(ctx, prID)
+	if err != nil {
+		return models.PR{}, "", err
+	}
+
+	candidates, err := s.uServ.GetAnotherReviewers(ctx, pr.PRID, oldReviewerID, pr.AuthorID)
+
+	if err != nil {
+		return models.PR{}, "", err
+	}
+
+	// Тут вылетает ошибка что кандидата нет
+	if len(candidates) == 0 {
+		return models.PR{}, "", models.ErrNoCandidate
+	}
+
+	reviewers := getReviewers(candidates)
+	newReviewerID := reviewers[0]
+
+	// Тут транзакция, выплёвывает 1 из 3 возможных ошибок, либо пятисотим
+	newPr, newReviewers, err := s.repo.ReassignPRReviewer(ctx, prID, oldReviewerID, newReviewerID)
+	if err != nil {
+		return models.PR{}, "", err
+	}
+
+	newPr.AssignedReviewers = newReviewers
+
+	return newPr, newReviewerID, nil
 }
 
 func getReviewers(candidates []string) []string {

@@ -27,6 +27,18 @@ const (
 	WHERE team_name = $1
 		AND id <> $2
 		AND is_active = TRUE;`
+
+	GetAnotherReviewerQuery = `SELECT id 
+	FROM users
+	WHERE id <> $1 -- старый ревьювер
+		AND id <> $2 -- автор PR
+		AND team_name = $3
+		AND is_active = TRUE
+		AND id NOT IN ( -- исключаем второго ревьювера если он есть
+			SELECT reviewer_id
+			FROM pull_requests_reviewers
+			WHERE pull_request_id = $4
+		);`
 )
 
 type UserRepository struct {
@@ -113,4 +125,39 @@ func (r *UserRepository) GetReviewers(ctx context.Context, userID, teamName stri
 	}
 
 	return reviewers, nil
+}
+
+func (r *UserRepository) GetAnotherReviewers(ctx context.Context, prID, oldReviewerID, authorID string) ([]string, error) {
+	var user models.User
+
+	// Получаем ревьювера, которого хотим заменить, чтобы узнать его текущую команду
+	if err := r.db.pool.QueryRow(ctx, GetUserQuery, oldReviewerID).Scan(&user.Id,
+		&user.Username,
+		&user.TeamName,
+		&user.IsActive); err != nil {
+		return nil, mapErr(err)
+	}
+
+	rows, err := r.db.pool.Query(ctx, GetAnotherReviewerQuery, oldReviewerID, authorID, user.TeamName, prID)
+	if err != nil {
+		return nil, mapErr(err)
+	}
+	defer rows.Close()
+
+	var candidates []string
+
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, mapErr(err)
+		}
+
+		candidates = append(candidates, id)
+	}
+
+	if rows.Err() != nil {
+		return nil, mapErr(rows.Err())
+	}
+
+	return candidates, nil
 }

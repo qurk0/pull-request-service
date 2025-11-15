@@ -22,6 +22,20 @@ const (
 	RETURNING id, pull_request_name, author_id, status, created_at, merged_at;`
 
 	AddReviewersQuery = `INSERT INTO pull_requests_reviewers (pull_request_id, reviewer_id) VALUES ($1, $2);`
+
+	GetPRByIDQuery = `SELECT id, pull_request_name, author_id, status, created_at, merged_at
+	FROM pull_requests
+	WHERE id = $1;`
+
+	ReassignPRReviewerQuery = `UPDATE pull_requests_reviewers
+	SET reviewer_id = $3
+	WHERE pull_request_id = $1
+		AND reviewer_id = $2;
+	`
+
+	GetReviewersQuery = `SELECT reviewer_id
+	FROM pull_requests_reviewers
+	WHERE pull_request_id = $1;`
 )
 
 type PullRequestRepository struct {
@@ -102,4 +116,83 @@ func (r *PullRequestRepository) CreatePR(ctx context.Context, prID, prName, auth
 	}
 
 	return pr, nil
+}
+
+func (r *PullRequestRepository) GetPRByID(ctx context.Context, prID string) (models.PR, error) {
+	var pr models.PR
+	err := r.db.pool.QueryRow(ctx, GetPRByIDQuery, prID).Scan(&pr.PRID,
+		&pr.PRName,
+		&pr.AuthorID,
+		&pr.Status,
+		&pr.CreatedAt,
+		&pr.MergedAt,
+	)
+	if err != nil {
+		return models.PR{}, mapErr(err)
+	}
+
+	return pr, nil
+}
+
+func (r *PullRequestRepository) ReassignPRReviewer(ctx context.Context, prID, oldReviewerID, newReviewerID string) (models.PR, []string, error) {
+	tx, err := r.db.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead})
+	if err != nil {
+		return models.PR{}, nil, mapErr(err)
+	}
+	defer tx.Rollback(ctx)
+
+	var pr models.PR
+	const GetPRForUpdate string = `
+	SELECT id, pull_request_name, author_id, status, created_at, merged_at
+	FROM pull_requests
+	WHERE id = $1
+	FOR UPDATE;
+	`
+
+	if err := tx.QueryRow(ctx, GetPRForUpdate, prID).Scan(&pr.PRID,
+		&pr.PRName,
+		&pr.AuthorID,
+		&pr.Status,
+		&pr.CreatedAt,
+		&pr.MergedAt); err != nil {
+		return models.PR{}, nil, mapErr(err)
+	}
+
+	if pr.Status != models.OpenStatus {
+		return models.PR{}, nil, models.ErrPRMerged
+	}
+
+	pgc, err := tx.Exec(ctx, ReassignPRReviewerQuery, prID, oldReviewerID, newReviewerID)
+	if err != nil {
+		return models.PR{}, nil, mapErr(err)
+	}
+	if pgc.RowsAffected() == 0 {
+		return models.PR{}, nil, models.ErrNotAssigned
+	}
+
+	rows, err := tx.Query(ctx, GetReviewersQuery, pr.PRID)
+	if err != nil {
+		return models.PR{}, nil, mapErr(err)
+	}
+	defer rows.Close()
+	var reviewers []string
+	for rows.Next() {
+		var id string
+		err := rows.Scan(&id)
+		if err != nil {
+			return models.PR{}, nil, mapErr(err)
+		}
+
+		reviewers = append(reviewers, id)
+	}
+
+	if rows.Err() != nil {
+		return models.PR{}, nil, mapErr(rows.Err())
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return models.PR{}, nil, mapErr(err)
+	}
+
+	return pr, reviewers, nil
 }

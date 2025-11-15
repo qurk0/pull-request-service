@@ -55,6 +55,38 @@ func (r *Router) RegRoutes(app *fiber.App) {
 
 func writeError(c *fiber.Ctx, err error) error {
 	switch {
+	case errors.Is(err, models.ErrTeamExists):
+		return c.Status(fiber.StatusBadRequest).JSON(dto.ErrorResponse{
+			Error: dto.HttpError{
+				Code:    dto.ErrCodeTeamExists,
+				Message: "team_name already exists",
+			},
+		})
+
+	case errors.Is(err, models.ErrPRExists):
+		return c.Status(fiber.StatusConflict).JSON(dto.ErrorResponse{
+			Error: dto.HttpError{
+				Code:    dto.ErrCodePrExists,
+				Message: "PR id already exists",
+			},
+		})
+
+	case errors.Is(err, models.ErrPRMerged):
+		return c.Status(fiber.StatusConflict).JSON(dto.ErrorResponse{
+			Error: dto.HttpError{
+				Code:    dto.ErrCodePrMerged,
+				Message: "cannot reassign on merged PR",
+			},
+		})
+
+	case errors.Is(err, models.ErrNotAssigned):
+		return c.Status(fiber.StatusConflict).JSON(dto.ErrorResponse{
+			Error: dto.HttpError{
+				Code:    dto.ErrCodeNotAssigned,
+				Message: "reviewer is not assigned to this PR",
+			},
+		})
+
 	case errors.Is(err, models.ErrTimeout):
 		return c.Status(fiber.StatusServiceUnavailable).SendString("timeout reached")
 
@@ -72,19 +104,11 @@ func writeError(c *fiber.Ctx, err error) error {
 			},
 		})
 
-	case errors.Is(err, models.ErrTeamExists):
-		return c.Status(fiber.StatusBadRequest).JSON(dto.ErrorResponse{
-			Error: dto.HttpError{
-				Code:    dto.ErrCodeTeamExists,
-				Message: "team_name already exists",
-			},
-		})
-
-	case errors.Is(err, models.ErrPRExists):
+	case errors.Is(err, models.ErrNoCandidate):
 		return c.Status(fiber.StatusConflict).JSON(dto.ErrorResponse{
 			Error: dto.HttpError{
-				Code:    dto.ErrCodePrExists,
-				Message: "PR id already exists",
+				Code:    dto.ErrCodeNoCandidate,
+				Message: "no reviewer candidate available",
 			},
 		})
 

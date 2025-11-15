@@ -48,13 +48,9 @@ func (h *PRHandler) Reassign(c *fiber.Ctx) error {
 	}
 
 	respPr := prModelToDTO(pr)
-	return c.Status(fiber.StatusOK).JSON(struct {
-		Pr dto.ReassignPRResponse `json:"pr_reassign"`
-	}{
-		Pr: dto.ReassignPRResponse{
-			Pr:         respPr,
-			ReplasedBy: newReviewerId,
-		},
+	return c.Status(fiber.StatusOK).JSON(dto.ReassignPRResponse{
+		Pr:         respPr,
+		ReplacedBy: newReviewerId,
 	})
 }
 
