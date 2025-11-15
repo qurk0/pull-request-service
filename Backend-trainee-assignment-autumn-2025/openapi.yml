@@ -43,6 +43,7 @@ components:
                 - NOT_ASSIGNED
                 - NO_CANDIDATE
                 - NOT_FOUND
+                - UNAUTHORIZED
             message:
               type: string
       example:
@@ -161,7 +162,7 @@ paths:
                     - user_id: u2
                       username: Bob
                       is_active: true
-        '400':
+        '409':
           description: Команда уже существует
           content:
             application/json:
@@ -198,6 +199,11 @@ paths:
                     is_active: true
         '404':
           description: Команда не найдена
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '401':
+          description: Нет/неверный токен доступа
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ErrorResponse' }
@@ -288,6 +294,11 @@ paths:
                   author_id: u1
                   status: OPEN
                   assigned_reviewers: [u2, u3]
+        '401':
+          description: Нет/неверный админский токен
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
         '404':
           description: Автор/команда не найдены
           content:
@@ -300,7 +311,7 @@ paths:
               schema: { $ref: '#/components/schemas/ErrorResponse' }
               example:
                 error: { code: PR_EXISTS, message: PR id already exists }
-
+  
   /pullRequest/merge:
     post:
       tags: [PullRequests]
@@ -336,6 +347,11 @@ paths:
                   status: MERGED
                   assigned_reviewers: [u2, u3]
                   mergedAt: 2025-10-24T12:34:56Z
+        '401':
+          description: Нет/неверный админский токен
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
         '404':
           description: PR не найден
           content:
@@ -360,7 +376,7 @@ paths:
                 old_user_id: { type: string }
             example:
               pull_request_id: pr-1001
-              old_reviewer_id: u2
+              old_user_id: u2
       responses:
         '200':
           description: Переназначение выполнено
@@ -406,6 +422,11 @@ paths:
                   summary: Нет доступных кандидатов
                   value:
                     error: { code: NO_CANDIDATE, message: no active replacement candidate in team }
+        '401':
+          description: Нет/неверный админский токен
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
 
   /users/getReview:
     get:
@@ -438,3 +459,8 @@ paths:
                     pull_request_name: Add search
                     author_id: u1
                     status: OPEN
+        '401':
+          description: Нет/неверный токен доступа
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
