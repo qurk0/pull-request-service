@@ -46,7 +46,7 @@ func main() {
 	storage := pgsql.NewStorage(db)
 
 	// Создаём инстанс сервисов, storage будет реализовывать методы интерфейсов сервисов
-	servs := services.NewServices(storage)
+	servs := services.NewServices(storage.User, storage.Team, storage.PullRequest)
 
 	// Создаём хэндлеры
 	router := handlers.NewRouter(servs)

@@ -10,15 +10,19 @@ import (
 
 type UserService interface {
 	SetIsActive(ctx context.Context, userID string, active bool) (*models.User, error)
-	GetReview(ctx context.Context, userID string) ([]*models.PRShort, error)
+}
+
+type PRService interface {
+	GetByReviewer(ctx context.Context, userID string) ([]*models.PRShort, error)
 }
 
 type UserHandler struct {
-	serv UserService
+	userServ UserService
+	prServ   PRService
 }
 
-func NewUserHandler(service UserService) *UserHandler {
-	return &UserHandler{serv: service}
+func NewUserHandler(uServ UserService, prServ PRService) *UserHandler {
+	return &UserHandler{userServ: uServ, prServ: prServ}
 }
 
 /*
@@ -32,9 +36,9 @@ func (uh *UserHandler) SetIsActive(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).SendString("invalid request body")
 	}
 
-	user, err := uh.serv.SetIsActive(c.Context(), req.UserId, req.IsActive)
+	user, err := uh.userServ.SetIsActive(c.UserContext(), req.UserId, req.IsActive)
 	if err != nil {
-		return c.Status(500).SendString("implement this case (uh.SetIsActive)")
+		return writeError(c, err)
 	}
 
 	respUser := dto.SetIsActiveResponse{
@@ -57,9 +61,9 @@ func (uh *UserHandler) GetReview(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).SendString("invalid query params")
 	}
 
-	prShortList, err := uh.serv.GetReview(c.Context(), userID)
+	prShortList, err := uh.prServ.GetByReviewer(c.UserContext(), userID)
 	if err != nil {
-		return c.Status(500).SendString("implement this case (uh.GetReview)")
+		return writeError(c, err)
 	}
 
 	reqPRShortList := make([]dto.PRShort, 0, len(prShortList))

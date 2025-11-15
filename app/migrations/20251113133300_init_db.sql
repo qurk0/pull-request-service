@@ -13,11 +13,11 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS pull_requests(
     id TEXT PRIMARY KEY,
-    pull_request_name TEXT,
+    pull_request_name TEXT NOT NULL,
     author_id TEXT NOT NULL REFERENCES users(id),
     status TEXT NOT NULL CHECK (status in ('OPEN', 'MERGED')),
-    created_at TIMESTAMP DEFAULT NOW()
-    merged_at TIMESTAMP
+    created_at TIMESTAMP DEFAULT NOW(),
+    merged_at TIMESTAMP DEFAULT NULL
 );
 
 -- Таблица M:N для связи ревьюверов и PR

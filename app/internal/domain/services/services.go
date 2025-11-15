@@ -12,10 +12,10 @@ type Services struct {
 	PR   *PullRequestService
 }
 
-func NewServices(db DB) *Services {
+func NewServices(uRepo UserRepo, tRepo TeamRepo, prRepo PullRequestRepo) *Services {
 	return &Services{
-		User: newUserService(db),
-		Team: newTeamService(db),
-		PR:   newPullRequestService(db),
+		User: newUserService(uRepo),
+		Team: newTeamService(tRepo),
+		PR:   newPullRequestService(prRepo),
 	}
 }
