@@ -40,6 +40,7 @@ func (db *PgDB) Close() {
 // Как единая структура, которую создаём в main.go для удобства
 // Потом в соответствующий сервис передаём соответствующий репозиторий для удобства разработки
 type Storage struct {
+	Db          *PgDB
 	User        *UserRepository
 	Team        *TeamRepository
 	PullRequest *PullRequestRepository

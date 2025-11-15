@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS teams (
 
 CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
-    username TEXT UNIQUE,
+    username TEXT,
     team_name TEXT NOT NULL REFERENCES teams(team_name) ON DELETE CASCADE,
     is_active BOOLEAN NOT NULL DEFAULT TRUE
 );

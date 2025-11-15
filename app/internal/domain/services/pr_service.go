@@ -7,7 +7,7 @@ import (
 )
 
 type PullRequestRepo interface {
-	GetByReviewer(ctx context.Context, userID string) ([]*models.PRShort, error)
+	GetByReviewer(ctx context.Context, userID string) ([]models.PRShort, error)
 }
 
 type PullRequestService struct {
@@ -18,6 +18,6 @@ func newPullRequestService(repo PullRequestRepo) *PullRequestService {
 	return &PullRequestService{repo: repo}
 }
 
-func (prs *PullRequestService) GetByReviewer(ctx context.Context, userID string) ([]*models.PRShort, error) {
+func (prs *PullRequestService) GetByReviewer(ctx context.Context, userID string) ([]models.PRShort, error) {
 	return prs.repo.GetByReviewer(ctx, userID)
 }

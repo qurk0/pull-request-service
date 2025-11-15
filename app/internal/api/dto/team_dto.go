@@ -1,8 +1,13 @@
 package dto
 
-type GetTeamResponse struct {
-	TeamName string    `json:"team_name"`
-	Members  []*Member `json:"members"`
+type AddTeamRequest struct {
+	TeamName string   `json:"team_name"`
+	Members  []Member `json:"members"`
+}
+
+type TeamResponse struct {
+	TeamName string   `json:"team_name"`
+	Members  []Member `json:"members"`
 }
 
 type Member struct {

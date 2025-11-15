@@ -31,20 +31,20 @@ func newUserRepo(db *PgDB) *UserRepository {
 	return &UserRepository{db: db}
 }
 
-func (r *UserRepository) GetUser(ctx context.Context, userID string) (*models.User, error) {
+func (r *UserRepository) GetUser(ctx context.Context, userID string) (models.User, error) {
 	var user models.User
 	if err := r.db.pool.QueryRow(ctx, GetUserQuery, userID).Scan(&user.Id,
 		&user.Username,
 		&user.TeamName,
 		&user.IsActive); err != nil {
-		return nil, mapErr(err)
+		return models.User{}, mapErr(err)
 	}
 
-	return &user, nil
+	return user, nil
 }
 
-func (r *UserRepository) UpdateUserIsActive(ctx context.Context, user *models.User) error {
-	pgc, err := r.db.pool.Exec(ctx, user.Id, user.IsActive)
+func (r *UserRepository) UpdateUserIsActive(ctx context.Context, userId string, isActive bool) error {
+	pgc, err := r.db.pool.Exec(ctx, UpdateUserIsActiveQuery, userId, isActive)
 	if err != nil {
 		return mapErr(err)
 	}
@@ -55,15 +55,15 @@ func (r *UserRepository) UpdateUserIsActive(ctx context.Context, user *models.Us
 	return nil
 }
 
-func (r *UserRepository) GetTeamMembers(ctx context.Context, teamName string) ([]*models.TeamMember, error) {
+func (r *UserRepository) GetTeamMembers(ctx context.Context, teamName string) ([]models.TeamMember, error) {
 	rows, err := r.db.pool.Query(ctx, GetTeamMembersQuery, teamName)
 	if err != nil {
 		return nil, mapErr(err)
 	}
-	memberList := make([]*models.TeamMember, 0)
+	memberList := make([]models.TeamMember, 0)
 
 	for rows.Next() {
-		mem := new(models.TeamMember)
+		mem := models.TeamMember{}
 
 		err := rows.Scan(&mem.Id, &mem.Username, &mem.IsActive)
 		if err != nil {
@@ -78,4 +78,5 @@ func (r *UserRepository) GetTeamMembers(ctx context.Context, teamName string) ([
 	}
 
 	return memberList, nil
+
 }

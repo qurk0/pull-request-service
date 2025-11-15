@@ -2,7 +2,7 @@ package models
 
 type Team struct {
 	TeamName    string
-	TeamMembers []*TeamMember
+	TeamMembers []TeamMember
 }
 
 type TeamMember struct {

@@ -17,16 +17,17 @@ type Router struct {
 }
 
 type UserService interface {
-	SetIsActive(ctx context.Context, userID string, active bool) (*models.User, error)
-	GetTeamMembers(ctx context.Context, teamName string) ([]*models.TeamMember, error)
+	SetIsActive(ctx context.Context, userID string, active bool) (models.User, error)
+	GetTeamMembers(ctx context.Context, teamName string) ([]models.TeamMember, error)
 }
 
 type PRService interface {
-	GetByReviewer(ctx context.Context, userID string) ([]*models.PRShort, error)
+	GetByReviewer(ctx context.Context, userID string) ([]models.PRShort, error)
 }
 
 type TeamService interface {
-	CheckTeamExists(ctx context.Context, teamName string) error
+	CheckTeamExists(ctx context.Context, teamName string) (bool, error)
+	CreateTeamWithMembers(ctx context.Context, teamName string, members []models.TeamMember) (models.Team, error)
 }
 
 func NewRouter(servs *services.Services) *Router {
@@ -65,6 +66,14 @@ func writeError(c *fiber.Ctx, err error) error {
 			Error: dto.HttpError{
 				Code:    dto.ErrCodeNotFound,
 				Message: "not found",
+			},
+		})
+
+	case errors.Is(err, models.ErrAlreadyExists):
+		return c.Status(fiber.StatusConflict).JSON(dto.ErrorResponse{
+			Error: dto.HttpError{
+				Code:    dto.ErrCodeTeamExists,
+				Message: "team_name already exists",
 			},
 		})
 

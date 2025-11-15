@@ -23,16 +23,16 @@ func newPullRequestRepo(db *PgDB) *PullRequestRepository {
 	return &PullRequestRepository{db: db}
 }
 
-func (r *PullRequestRepository) GetByReviewer(ctx context.Context, userID string) ([]*models.PRShort, error) {
+func (r *PullRequestRepository) GetByReviewer(ctx context.Context, userID string) ([]models.PRShort, error) {
 	rows, err := r.db.pool.Query(ctx, GetByReviewerQuery, userID)
 	if err != nil {
 		return nil, mapErr(err)
 	}
 	defer rows.Close()
 
-	prList := make([]*models.PRShort, 0)
+	prList := make([]models.PRShort, 0)
 	for rows.Next() {
-		pr := new(models.PRShort)
+		pr := models.PRShort{}
 
 		err := rows.Scan(
 			&pr.PRID,
