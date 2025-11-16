@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/gofiber/fiber/v2/log"
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
@@ -21,8 +22,8 @@ type apiConfig struct {
 }
 
 type Config struct {
-	db       dbConfig  `yaml:"db" env-required:"true"`
-	api      apiConfig `yaml:"api" env-required:"true"`
+	Db       dbConfig  `yaml:"db" env-required:"true"`
+	Api      apiConfig `yaml:"api" env-required:"true"`
 	LogLevel string    `env:"LOGLEVEL"`
 }
 
@@ -30,6 +31,7 @@ func Load(cfgPath string) (*Config, error) {
 	var cfg Config
 	err := cleanenv.ReadConfig(cfgPath, &cfg)
 	if err != nil {
+		log.Error("failed to read config")
 		return nil, err
 	}
 
@@ -39,20 +41,21 @@ func Load(cfgPath string) (*Config, error) {
 	}
 
 	cfg.LogLevel = logLevel
+	log.Info(cfg.Api.Host, " ", cfg.Api.Port)
 	return &cfg, nil
 }
 
 func (cfg *Config) ConnString() string {
 	return fmt.Sprintf(`user=%s password=%s host=%s port=%d dbname=%s sslmode=disable`,
-		cfg.db.User,
-		cfg.db.Password,
-		cfg.db.Host,
-		cfg.db.Port,
-		cfg.db.DbName)
+		cfg.Db.User,
+		cfg.Db.Password,
+		cfg.Db.Host,
+		cfg.Db.Port,
+		cfg.Db.DbName)
 }
 
 func (cfg *Config) ListenAddr() string {
 	return fmt.Sprintf("%s:%d",
-		cfg.api.Host,
-		cfg.api.Port)
+		cfg.Api.Host,
+		cfg.Api.Port)
 }

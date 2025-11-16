@@ -77,6 +77,11 @@ func (r *TeamRepository) CreateTeamWithMembers(ctx context.Context, teamName str
 		)
 
 		for i, member := range members {
+			r.log.Debug("member",
+				slog.String("memID", member.Id),
+				slog.Any("memActive", member.IsActive),
+				slog.String("memUsername", member.Username),
+			)
 			if i == 0 {
 				query += fmt.Sprintf("\n($%d, $%d, $%d, $%d)", counter, counter+1, counter+2, counter+3)
 			} else {

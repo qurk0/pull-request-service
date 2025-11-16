@@ -18,11 +18,10 @@ func NewPRHandler(prServ PRService) *PRHandler {
 
 func (h *PRHandler) CreatePR(c *fiber.Ctx) error {
 	var req dto.CreatePRRequest
-	_ = c.BodyParser(&req)
-	// По документации написано, что 400 не возвращаем - считаю все запросы валидными.
-	// if err != nil {
-	// 	return writeError(c, err)
-	// }
+	err := c.BodyParser(&req)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString("invalid request body")
+	}
 
 	pr, err := h.prServ.CreatePR(c.UserContext(), req.PRID, req.PRNamme, req.AuthorID)
 	if err != nil {
@@ -39,8 +38,10 @@ func (h *PRHandler) CreatePR(c *fiber.Ctx) error {
 
 func (h *PRHandler) Reassign(c *fiber.Ctx) error {
 	var req dto.ReassignPRRequest
-	_ = c.BodyParser(&req)
-	// По документации написано, что 400 не возвращаем - считаю все запросы валидными.
+	err := c.BodyParser(&req)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString("invalid request body")
+	}
 
 	pr, newReviewerId, err := h.prServ.ReassignPR(c.UserContext(), req.PRID, req.OldReviewerID)
 	if err != nil {
@@ -56,8 +57,10 @@ func (h *PRHandler) Reassign(c *fiber.Ctx) error {
 
 func (h *PRHandler) Merge(c *fiber.Ctx) error {
 	var req dto.PRMergeRequest
-	_ = c.BodyParser(&req)
-	// По документации написано, что 400 не возвращаем - считаю все запросы валидными.
+	err := c.BodyParser(&req)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString("invalid request body")
+	}
 
 	pr, err := h.prServ.MergePR(c.UserContext(), req.PRID)
 	if err != nil {
