@@ -7,10 +7,12 @@ import (
 	"os"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/requestid"
 	"github.com/qurk0/pr-service/internal/api/handlers"
 	"github.com/qurk0/pr-service/internal/config"
 	"github.com/qurk0/pr-service/internal/domain/services"
 	"github.com/qurk0/pr-service/internal/storage/pgsql"
+	"github.com/qurk0/pr-service/pkg/middlewares"
 )
 
 const (
@@ -53,6 +55,8 @@ func main() {
 
 	// TODO: Создаём fiber.App и привязываем хэндлеры к эндпоинтам
 	app := fiber.New()
+	app.Use(requestid.New())
+	app.Use(middlewares.RequestLoggerMiddleware(logger))
 	router.RegRoutes(app)
 
 	// TODO: Слушаем адрес из конфигов
