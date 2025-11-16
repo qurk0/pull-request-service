@@ -17,3 +17,46 @@
 1. Переменная LOGLEVEL в ENV-переменных, по умолчанию будет стоять LevelInfo, если вдруг захочется взять другой уровень логирования - в docker-compose.yml меняем LOGLEVEL на уровень: 'warn', 'error', 'debug' (пока что только строчные литеры работают, в дальнейшем может будет свободный регистр в переменных окружения и буду всё к lowerCase приводить, пока не до этого)
 
 2. При создании команды если встречаем ID существующих членов команды - обновляем данные по ним: меняем username (возможно сделаю unique и не буду менять), team_name и is_active.
+
+### Нагрузочное тестирование
+
+Проводил с помощью hey:
+
+hey -n 20 -c 5 \
+  -m POST \
+  -H "Content-Type: application/json" \
+  -d '{
+    "team_name": "backend",
+    "members": [
+      {
+        "user_id": "u1",
+        "username": "Alice",
+        "is_active": true
+      },
+      {
+        "user_id": "u2",
+        "username": "Bob",
+        "is_active": true
+      },
+      {
+        "user_id": "u3",
+        "username": "Charlie",
+        "is_active": true
+      }
+    ]
+  }' \
+  http://localhost:8080/team/add
+
+hey -n 20 -c 5 \
+  "http://localhost:8080/team/get?team_name=backend"
+
+hey -n 20 -c 5 \
+  -m POST \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": "u2",
+    "is_active": false
+  }' \
+  http://localhost:8080/users/setIsActive          
+
+### E2E тестирование
