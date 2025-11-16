@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -24,27 +25,34 @@ const (
 )
 
 type TeamRepository struct {
-	db *PgDB
+	db  *PgDB
+	log *slog.Logger
 }
 
-func newTeamRepo(db *PgDB) *TeamRepository {
-	return &TeamRepository{db: db}
+func newTeamRepo(db *PgDB, log *slog.Logger) *TeamRepository {
+	return &TeamRepository{db: db, log: log}
 }
 
 func (r *TeamRepository) CheckTeamExists(ctx context.Context, teamName string) (bool, error) {
+	const op = "team_repo.CheckTeamExists"
 	var exists bool
 
 	err := r.db.pool.QueryRow(ctx, CheckTeamExists, teamName).Scan(&exists)
 	if err != nil {
+		r.log.Error(op, slog.String("error: failed to check team", err.Error()))
 		return false, mapErr(err)
 	}
 
+	r.log.Debug(op, slog.String("success", "team check done successfully"))
 	return exists, nil
 }
 
 func (r *TeamRepository) CreateTeamWithMembers(ctx context.Context, teamName string, members []models.TeamMember) (models.Team, error) {
+	const op = "team_repo.CreateTeamWithMembers"
+
 	tx, err := r.db.pool.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
+		r.log.Error(op, slog.String("error: failed to create team", err.Error()))
 		return models.Team{}, mapErr(err)
 	}
 	defer tx.Rollback(ctx)
@@ -53,9 +61,11 @@ func (r *TeamRepository) CreateTeamWithMembers(ctx context.Context, teamName str
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			if pgErr.Code == "23505" {
+				r.log.Warn(op, slog.String("error: failed to create team", "team already exists"))
 				return models.Team{}, models.ErrTeamExists
 			}
 		}
+		r.log.Error(op, slog.String("error: failed to create team", err.Error()))
 		return models.Team{}, mapErr(err)
 	}
 
@@ -82,14 +92,17 @@ func (r *TeamRepository) CreateTeamWithMembers(ctx context.Context, teamName str
 			is_active = EXCLUDED.is_active;`
 
 		if _, err = tx.Exec(ctx, query, args...); err != nil {
+			r.log.Error(op, slog.String("error: failed to create team", err.Error()))
 			return models.Team{}, mapErr(err)
 		}
 	}
 
 	if err = tx.Commit(ctx); err != nil {
+		r.log.Error(op, slog.String("error: failed to create team", err.Error()))
 		return models.Team{}, mapErr(err)
 	}
 
+	r.log.Debug(op, slog.String("success", "team created"))
 	return models.Team{
 		TeamName:    teamName,
 		TeamMembers: members,

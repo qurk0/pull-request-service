@@ -10,7 +10,7 @@ BEGIN
     FROM pull_requests_reviewers
     WHERE pull_request_id = NEW.pull_request_id
         AND (TG_OP <> 'UPDATE' OR NOT (pull_request_id = OLD.pull_request_id 
-                                        AND reviewer_id = OLD.reviewer_id))
+                                        AND reviewer_id = OLD.reviewer_id));
     IF reviewers_count >= 2 THEN
         RAISE EXCEPTION
             'cannot assign more than 2 reviewers to pull_request_id=%', NEW.pull_request_id

@@ -3,6 +3,7 @@ package pgsql
 import (
 	"context"
 	"errors"
+	"log/slog"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -46,16 +47,20 @@ const (
 )
 
 type PullRequestRepository struct {
-	db *PgDB
+	db  *PgDB
+	log *slog.Logger
 }
 
-func newPullRequestRepo(db *PgDB) *PullRequestRepository {
-	return &PullRequestRepository{db: db}
+func newPullRequestRepo(db *PgDB, log *slog.Logger) *PullRequestRepository {
+	return &PullRequestRepository{db: db, log: log}
 }
 
 func (r *PullRequestRepository) GetByReviewer(ctx context.Context, userID string) ([]models.PRShort, error) {
+	const op = "pr_repo.GetByReviewer"
+
 	rows, err := r.db.pool.Query(ctx, GetByReviewerQuery, userID)
 	if err != nil {
+		r.log.Error(op, slog.String("error: failed to get PR by reviewer", err.Error()))
 		return nil, mapErr(err)
 	}
 	defer rows.Close()
@@ -72,6 +77,7 @@ func (r *PullRequestRepository) GetByReviewer(ctx context.Context, userID string
 		)
 
 		if err != nil {
+			r.log.Error(op, slog.String("error: failed to get PR by reviewer", err.Error()))
 			return nil, mapErr(err)
 		}
 
@@ -79,17 +85,22 @@ func (r *PullRequestRepository) GetByReviewer(ctx context.Context, userID string
 	}
 
 	if rows.Err() != nil {
+		r.log.Error(op, slog.String("error: failed to get PR by reviewer", rows.Err().Error()))
 		return nil, mapErr(rows.Err())
 	}
 
+	r.log.Debug(op, slog.String("success", "PR got by reviewer"))
 	return prList, nil
 }
 
 func (r *PullRequestRepository) CreatePR(ctx context.Context, prID, prName, authorID string, reviewers []string) (models.PR, error) {
+	const op = "pr_repo.CreatePR"
+
 	var pr models.PR
 
 	tx, err := r.db.pool.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
+		r.log.Error(op, slog.String("error: failed to create PR", err.Error()))
 		return models.PR{}, mapErr(err)
 	}
 	defer tx.Rollback(ctx)
@@ -104,28 +115,35 @@ func (r *PullRequestRepository) CreatePR(ctx context.Context, prID, prName, auth
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
 			if pgErr.Code == "23505" {
+				r.log.Error(op, slog.String("error: failed to create PR", "PR already exists"))
 				return models.PR{}, models.ErrPRExists
 			}
 		}
+		r.log.Error(op, slog.String("error: failed to create PR", err.Error()))
 		return models.PR{}, mapErr(err)
 	}
 
 	pr.AssignedReviewers = make([]string, 0, len(reviewers))
 	for _, id := range reviewers {
 		if _, err := tx.Exec(ctx, AddReviewersQuery, pr.PRID, id); err != nil {
+			r.log.Error(op, slog.String("error: failed to create PR", err.Error()))
 			return models.PR{}, mapErr(err)
 		}
 		pr.AssignedReviewers = append(pr.AssignedReviewers, id)
 	}
 
 	if err := tx.Commit(ctx); err != nil {
+		r.log.Error(op, slog.String("error: failed to create PR", err.Error()))
 		return models.PR{}, mapErr(err)
 	}
 
+	r.log.Debug(op, slog.String("success", "PR created"))
 	return pr, nil
 }
 
 func (r *PullRequestRepository) GetPRByID(ctx context.Context, prID string) (models.PR, error) {
+	const op = "pr_repo.GetPRByID"
+
 	var pr models.PR
 	err := r.db.pool.QueryRow(ctx, GetPRByIDQuery, prID).Scan(&pr.PRID,
 		&pr.PRName,
@@ -135,15 +153,20 @@ func (r *PullRequestRepository) GetPRByID(ctx context.Context, prID string) (mod
 		&pr.MergedAt,
 	)
 	if err != nil {
+		r.log.Error(op, slog.String("error: failed to get PR by ID", err.Error()))
 		return models.PR{}, mapErr(err)
 	}
 
+	r.log.Debug(op, slog.String("success", "PR got by ID"))
 	return pr, nil
 }
 
 func (r *PullRequestRepository) ReassignPRReviewer(ctx context.Context, prID, oldReviewerID, newReviewerID string) (models.PR, []string, error) {
+	const op = "pr_repo.ReassignPRReviewer"
+
 	tx, err := r.db.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead})
 	if err != nil {
+		r.log.Error(op, slog.String("error: failed to reassign PR reviewer", err.Error()))
 		return models.PR{}, nil, mapErr(err)
 	}
 	defer tx.Rollback(ctx)
@@ -162,23 +185,28 @@ func (r *PullRequestRepository) ReassignPRReviewer(ctx context.Context, prID, ol
 		&pr.Status,
 		&pr.CreatedAt,
 		&pr.MergedAt); err != nil {
+		r.log.Error(op, slog.String("error: failed to reassign PR reviewer", err.Error()))
 		return models.PR{}, nil, mapErr(err)
 	}
 
 	if pr.Status != models.OpenStatus {
+		r.log.Error(op, slog.String("error: failed to reassign PR reviewer", "PR is merged"))
 		return models.PR{}, nil, models.ErrPRMerged
 	}
 
 	pgc, err := tx.Exec(ctx, ReassignPRReviewerQuery, prID, oldReviewerID, newReviewerID)
 	if err != nil {
+		r.log.Error(op, slog.String("error: failed to reassign PR reviewer", err.Error()))
 		return models.PR{}, nil, mapErr(err)
 	}
 	if pgc.RowsAffected() == 0 {
+		r.log.Error(op, slog.String("error: failed to reassign PR reviewer", "reviewer is not assigned"))
 		return models.PR{}, nil, models.ErrNotAssigned
 	}
 
 	rows, err := tx.Query(ctx, GetReviewersQuery, pr.PRID)
 	if err != nil {
+		r.log.Error(op, slog.String("error: failed to reassign PR reviewer", err.Error()))
 		return models.PR{}, nil, mapErr(err)
 	}
 	defer rows.Close()
@@ -187,6 +215,7 @@ func (r *PullRequestRepository) ReassignPRReviewer(ctx context.Context, prID, ol
 		var id string
 		err := rows.Scan(&id)
 		if err != nil {
+			r.log.Error(op, slog.String("error: failed to reassign PR reviewer", err.Error()))
 			return models.PR{}, nil, mapErr(err)
 		}
 
@@ -194,19 +223,25 @@ func (r *PullRequestRepository) ReassignPRReviewer(ctx context.Context, prID, ol
 	}
 
 	if rows.Err() != nil {
+		r.log.Error(op, slog.String("error: failed to reassign PR reviewer", rows.Err().Error()))
 		return models.PR{}, nil, mapErr(rows.Err())
 	}
 
 	if err := tx.Commit(ctx); err != nil {
+		r.log.Error(op, slog.String("error: failed to reassign PR reviewer", err.Error()))
 		return models.PR{}, nil, mapErr(err)
 	}
 
+	r.log.Debug(op, slog.String("success", "PR reviewer reassigned"))
 	return pr, reviewers, nil
 }
 
 func (r *PullRequestRepository) GetPRReviewers(ctx context.Context, prID string) ([]string, error) {
+	const op = "pr_repo.GetPRReviewers"
+
 	rows, err := r.db.pool.Query(ctx, GetReviewersQuery, prID)
 	if err != nil {
+		r.log.Error(op, slog.String("error: failed to get PR reviewers", err.Error()))
 		return nil, mapErr(err)
 	}
 	defer rows.Close()
@@ -216,18 +251,23 @@ func (r *PullRequestRepository) GetPRReviewers(ctx context.Context, prID string)
 		var id string
 		err := rows.Scan(&id)
 		if err != nil {
+			r.log.Error(op, slog.String("error: failed to get PR reviewers", err.Error()))
 			return nil, mapErr(err)
 		}
 		reviewers = append(reviewers, id)
 	}
 
 	if rows.Err() != nil {
+		r.log.Error(op, slog.String("error: failed to get PR reviewers", rows.Err().Error()))
 		return nil, mapErr(rows.Err())
 	}
 
+	r.log.Debug(op, slog.String("success", "PR reviewers got"))
 	return reviewers, nil
 }
 func (r *PullRequestRepository) MergePR(ctx context.Context, prID string) (models.PR, error) {
+	const op = "pr_repo.MergePR"
+
 	var pr models.PR
 
 	err := r.db.pool.QueryRow(ctx, MergePRQuery, prID).Scan(&pr.PRID,
@@ -237,8 +277,10 @@ func (r *PullRequestRepository) MergePR(ctx context.Context, prID string) (model
 		&pr.CreatedAt,
 		&pr.MergedAt)
 	if err != nil {
+		r.log.Error(op, slog.String("error: failed to merge PR", err.Error()))
 		return models.PR{}, mapErr(err)
 	}
 
+	r.log.Debug(op, slog.String("success", "merged PR got"))
 	return pr, nil
 }

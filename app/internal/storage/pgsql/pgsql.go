@@ -2,6 +2,7 @@ package pgsql
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -46,10 +47,10 @@ type Storage struct {
 	PullRequest *PullRequestRepository
 }
 
-func NewStorage(db *PgDB) *Storage {
+func NewStorage(db *PgDB, log *slog.Logger) *Storage {
 	return &Storage{
-		User:        newUserRepo(db),
-		Team:        newTeamRepo(db),
-		PullRequest: newPullRequestRepo(db),
+		User:        newUserRepo(db, log),
+		Team:        newTeamRepo(db, log),
+		PullRequest: newPullRequestRepo(db, log),
 	}
 }

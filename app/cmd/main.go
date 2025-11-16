@@ -43,13 +43,13 @@ func main() {
 	db, err := pgsql.NewDB(context.Background(), cfg.ConnString())
 
 	// Тут создаём структуру Storage, которая хранит в себе 3 репозитория для работы с юзерами, тимами и ПР'ами, всё в одном месте для удобства
-	storage := pgsql.NewStorage(db)
+	storage := pgsql.NewStorage(db, logger)
 
 	// Создаём инстанс сервисов, storage будет реализовывать методы интерфейсов сервисов
-	servs := services.NewServices(storage.User, storage.Team, storage.PullRequest)
+	servs := services.NewServices(storage.User, storage.Team, storage.PullRequest, logger)
 
 	// Создаём хэндлеры
-	router := handlers.NewRouter(servs)
+	router := handlers.NewRouter(servs, logger)
 
 	// TODO: Создаём fiber.App и привязываем хэндлеры к эндпоинтам
 	app := fiber.New()
