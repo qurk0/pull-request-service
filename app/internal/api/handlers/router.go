@@ -113,7 +113,7 @@ func writeError(c *fiber.Ctx, err error) error {
 			},
 		})
 
-	case errors.Is(err, errors.New("duplicated ids")):
+	case errors.Is(err, models.ErrDuplicatedIds):
 		return c.Status(fiber.StatusBadRequest).SendString("duplicated ids")
 
 	default:

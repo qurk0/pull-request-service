@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 
 	"github.com/qurk0/pr-service/internal/domain/models"
@@ -43,8 +42,9 @@ func (s *TeamService) CreateTeamWithMembers(ctx context.Context, teamName string
 	for _, member := range members {
 		if _, ok := ids[member.Id]; ok {
 			s.log.Error(op, slog.String("error: duplicated id", member.Id))
-			return models.Team{}, errors.New("duplicated ids")
+			return models.Team{}, models.ErrDuplicatedIds
 		}
+		ids[member.Id] = struct{}{}
 	}
 
 	return s.repo.CreateTeamWithMembers(ctx, teamName, members)

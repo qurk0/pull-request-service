@@ -154,6 +154,7 @@ func (r *UserRepository) GetAnotherReviewers(ctx context.Context, prID, oldRevie
 	var user models.User
 
 	// Получаем ревьювера, которого хотим заменить, чтобы узнать его текущую команду
+	r.log.Debug(op, slog.String("oldReviewerID", oldReviewerID))
 	if err := r.db.pool.QueryRow(ctx, GetUserQuery, oldReviewerID).Scan(&user.Id,
 		&user.Username,
 		&user.TeamName,
@@ -162,6 +163,11 @@ func (r *UserRepository) GetAnotherReviewers(ctx context.Context, prID, oldRevie
 		return nil, mapErr(err)
 	}
 
+	r.log.Debug(op,
+		slog.String("query params: $1", oldReviewerID),
+		slog.String("$2", authorID),
+		slog.String("$3", user.TeamName),
+		slog.String("$4", prID))
 	rows, err := r.db.pool.Query(ctx, GetAnotherReviewerQuery, oldReviewerID, authorID, user.TeamName, prID)
 	if err != nil {
 		r.log.Error(op, slog.String("error: failed to get reviewers", err.Error()))

@@ -68,6 +68,7 @@ func (s *PullRequestService) ReassignPR(ctx context.Context, prID, oldReviewerID
 		return models.PR{}, "", err
 	}
 
+	s.log.Debug(op, slog.String("oldReviewerID", oldReviewerID))
 	candidates, err := s.uServ.GetAnotherReviewers(ctx, pr.PRID, oldReviewerID, pr.AuthorID)
 
 	if err != nil {
