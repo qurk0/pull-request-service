@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/qurk0/pr-service/internal/domain/models"
 )
@@ -16,23 +17,31 @@ type UserRepo interface {
 
 type UserService struct {
 	repo UserRepo
+	log  *slog.Logger
 }
 
-func newUserService(repo UserRepo) *UserService {
-	return &UserService{repo: repo}
+func newUserService(repo UserRepo, log *slog.Logger) *UserService {
+	return &UserService{repo: repo, log: log}
 }
 
 func (s *UserService) SetIsActive(ctx context.Context, userID string, active bool) (models.User, error) {
+	const op = "user_service.SetIsActive"
+
 	user, err := s.repo.GetUser(ctx, userID)
 	if err != nil {
+		s.log.Error(op, slog.String("error from repo", err.Error()))
 		return models.User{}, err
 	}
 
+	s.log.Debug(op, slog.String("got user with id", user.Id))
+
 	if err := s.repo.UpdateUserIsActive(ctx, user.Id, active); err != nil {
+		s.log.Error(op, slog.String("error from repo", err.Error()))
 		return models.User{}, err
 	}
 
 	user.IsActive = active
+	s.log.Debug(op, slog.String("success", "user activity changed"))
 	return user, nil
 }
 

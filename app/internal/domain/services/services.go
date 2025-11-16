@@ -1,5 +1,7 @@
 package services
 
+import "log/slog"
+
 type DB interface {
 	UserRepo
 	TeamRepo
@@ -12,10 +14,10 @@ type Services struct {
 	PR   *PullRequestService
 }
 
-func NewServices(uRepo UserRepo, tRepo TeamRepo, prRepo PullRequestRepo) *Services {
+func NewServices(uRepo UserRepo, tRepo TeamRepo, prRepo PullRequestRepo, logger *slog.Logger) *Services {
 	return &Services{
-		User: newUserService(uRepo),
-		Team: newTeamService(tRepo),
-		PR:   newPullRequestService(prRepo, newUserService(uRepo)),
+		User: newUserService(uRepo, logger),
+		Team: newTeamService(tRepo, logger),
+		PR:   newPullRequestService(prRepo, newUserService(uRepo, logger), logger),
 	}
 }

@@ -49,7 +49,7 @@ func main() {
 	servs := services.NewServices(storage.User, storage.Team, storage.PullRequest, logger)
 
 	// Создаём хэндлеры
-	router := handlers.NewRouter(servs, logger)
+	router := handlers.NewRouter(servs)
 
 	// TODO: Создаём fiber.App и привязываем хэндлеры к эндпоинтам
 	app := fiber.New()
