@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/qurk0/pr-service/internal/domain/models"
+	"github.com/qurk0/pr-service/internal/metrics"
 )
 
 type TeamRepo interface {
@@ -46,6 +47,6 @@ func (s *TeamService) CreateTeamWithMembers(ctx context.Context, teamName string
 		}
 		ids[member.Id] = struct{}{}
 	}
-
+	metrics.TeamsCreated.Inc()
 	return s.repo.CreateTeamWithMembers(ctx, teamName, members)
 }

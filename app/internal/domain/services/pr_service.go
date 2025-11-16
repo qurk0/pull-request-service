@@ -2,10 +2,12 @@ package services
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"math/rand"
 
 	"github.com/qurk0/pr-service/internal/domain/models"
+	"github.com/qurk0/pr-service/internal/metrics"
 )
 
 type PullRequestRepo interface {
@@ -14,7 +16,7 @@ type PullRequestRepo interface {
 	GetPRByID(ctx context.Context, prID string) (models.PR, error)
 	ReassignPRReviewer(ctx context.Context, prID, oldReviewerID, newReviewerID string) (models.PR, []string, error)
 	GetPRReviewers(ctx context.Context, prID string) ([]string, error)
-	MergePR(ctx context.Context, prID string) (models.PR, error)
+	MergePR(ctx context.Context, prID string) (models.PR, bool, error)
 }
 
 type PullRequestService struct {
@@ -56,6 +58,8 @@ func (s *PullRequestService) CreatePR(ctx context.Context, prID, prNamme, author
 	reviewers := getReviewers(candidates)
 	s.log.Debug(op, "got reviewers", reviewers)
 
+	// Если у нас где-то вылезла ошибка - мы до сюда не дойдем
+	metrics.PRCreated.Inc()
 	return s.repo.CreatePR(ctx, prID, prNamme, authorID, reviewers)
 }
 
@@ -78,6 +82,7 @@ func (s *PullRequestService) ReassignPR(ctx context.Context, prID, oldReviewerID
 
 	// Тут вылетает ошибка что кандидата нет
 	if len(candidates) == 0 {
+		metrics.PRReassignFailed.WithLabelValues("zero candidates").Inc()
 		s.log.Error(op, slog.String("error from repo", "zero candidates"))
 		return models.PR{}, "", models.ErrNoCandidate
 	}
@@ -89,19 +94,29 @@ func (s *PullRequestService) ReassignPR(ctx context.Context, prID, oldReviewerID
 
 	newPr, newReviewers, err := s.repo.ReassignPRReviewer(ctx, prID, oldReviewerID, newReviewerID)
 	if err != nil {
+		switch {
+		case errors.Is(err, models.ErrPRMerged):
+			metrics.PRReassignFailed.WithLabelValues("pr merged").Inc()
+		case errors.Is(err, models.ErrNotAssigned):
+			metrics.PRReassignFailed.WithLabelValues("not assigned").Inc()
+		case errors.Is(err, models.ErrNoCandidate):
+			metrics.PRReassignFailed.WithLabelValues("no candidates").Inc()
+		}
+
 		s.log.Error(op, slog.String("error from repo", err.Error()))
 		return models.PR{}, "", err
 	}
 
 	newPr.AssignedReviewers = newReviewers
 
+	metrics.PRReassigned.Inc()
 	return newPr, newReviewerID, nil
 }
 
 func (s *PullRequestService) MergePR(ctx context.Context, prID string) (models.PR, error) {
 	const op = "pr_service.MergePR"
 
-	newPr, err := s.repo.MergePR(ctx, prID)
+	newPr, isMerged, err := s.repo.MergePR(ctx, prID)
 	if err != nil {
 		s.log.Error(op, slog.String("error from repo", err.Error()))
 		return models.PR{}, err
@@ -115,6 +130,10 @@ func (s *PullRequestService) MergePR(ctx context.Context, prID string) (models.P
 
 	newPr.AssignedReviewers = reviewers
 	s.log.Debug(op, "PR merged", newPr.PRID, newPr.PRName, newPr.Status)
+
+	if isMerged {
+		metrics.PRMerged.Inc()
+	}
 	return newPr, nil
 }
 

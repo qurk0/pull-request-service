@@ -11,6 +11,7 @@ import (
 	"github.com/qurk0/pr-service/internal/api/handlers"
 	"github.com/qurk0/pr-service/internal/config"
 	"github.com/qurk0/pr-service/internal/domain/services"
+	"github.com/qurk0/pr-service/internal/metrics"
 	"github.com/qurk0/pr-service/internal/storage/pgsql"
 	"github.com/qurk0/pr-service/pkg/middlewares"
 )
@@ -27,39 +28,33 @@ const (
 )
 
 func main() {
-	// TODO: Читаем конфиги (либа cleanenv)
 	cfg, err := config.Load(cfgPath)
 	if err != nil {
 		log.Fatalf("failed to read configs: %v", err)
 		os.Exit(1)
 	}
 
-	// Запускаем логгер
-	// В рамках тестового задания это будет log/slog с выводом в терминал
 	logger := newLogger(cfg.LogLevel)
 	mainLogger := logger.With("op", "cmd.main")
 	mainLogger.Debug("debug messages are enable")
 
-	// Создаём инстанс стореджа
 	mainLogger.Debug("creating storage instanse")
 	db, err := pgsql.NewDB(context.Background(), cfg.ConnString())
 
-	// Тут создаём структуру Storage, которая хранит в себе 3 репозитория для работы с юзерами, тимами и ПР'ами, всё в одном месте для удобства
 	storage := pgsql.NewStorage(db, logger)
 
-	// Создаём инстанс сервисов, storage будет реализовывать методы интерфейсов сервисов
 	servs := services.NewServices(storage.User, storage.Team, storage.PullRequest, logger)
 
-	// Создаём хэндлеры
 	router := handlers.NewRouter(servs)
 
-	// TODO: Создаём fiber.App и привязываем хэндлеры к эндпоинтам
+	metrics.Init()
 	app := fiber.New()
+
 	app.Use(requestid.New())
 	app.Use(middlewares.RequestLoggerMiddleware(logger))
+
 	router.RegRoutes(app)
 
-	// TODO: Слушаем адрес из конфигов
 	if err := app.Listen(cfg.ListenAddr()); err != nil {
 		logger.Error("failed to start listening addr", slog.String("err", err.Error()))
 		os.Exit(1)

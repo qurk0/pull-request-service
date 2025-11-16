@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/log"
 	"github.com/qurk0/pr-service/internal/api/dto"
 	"github.com/qurk0/pr-service/internal/domain/models"
 )
@@ -43,8 +42,6 @@ func (h *PRHandler) Reassign(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).SendString("invalid request body")
 	}
-
-	log.Info(req.PRID, req.OldReviewerID)
 
 	pr, newReviewerId, err := h.prServ.ReassignPR(c.UserContext(), req.PRID, req.OldReviewerID)
 	if err != nil {

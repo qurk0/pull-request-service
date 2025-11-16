@@ -5,6 +5,8 @@ import (
 	"errors"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/adaptor"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/qurk0/pr-service/internal/api/dto"
 	"github.com/qurk0/pr-service/internal/domain/models"
 	"github.com/qurk0/pr-service/internal/domain/services"
@@ -52,6 +54,8 @@ func (r *Router) RegRoutes(app *fiber.App) {
 	app.Post("/pullRequest/create", r.PR.CreatePR)
 	app.Post("/pullRequest/merge", r.PR.Merge)
 	app.Post("/pullRequest/reassign", r.PR.Reassign)
+
+	app.Get("/metrics", adaptor.HTTPHandler(promhttp.Handler()))
 }
 
 func writeError(c *fiber.Ctx, err error) error {

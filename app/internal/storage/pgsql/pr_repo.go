@@ -38,12 +38,15 @@ const (
 	FROM pull_requests_reviewers
 	WHERE pull_request_id = $1;`
 
-	MergePRQuery = `UPDATE pull_requests
+	MergePRQuery = `
+	WITH old_status AS (SELECT status FROM pull_requests WHERE id = $1)
+
+	UPDATE pull_requests
 	SET 
 		status = 'MERGED',
 		merged_at = COALESCE(merged_at, NOW())
 	WHERE id = $1
-	RETURNING id, pull_request_name, author_id, status, created_at, merged_at;`
+	RETURNING id, pull_request_name, author_id, status, created_at, merged_at, (SELECT status FROM old_status) as old_status;`
 )
 
 type PullRequestRepository struct {
@@ -265,22 +268,25 @@ func (r *PullRequestRepository) GetPRReviewers(ctx context.Context, prID string)
 	r.log.Debug(op, slog.String("success", "PR reviewers got"))
 	return reviewers, nil
 }
-func (r *PullRequestRepository) MergePR(ctx context.Context, prID string) (models.PR, error) {
+func (r *PullRequestRepository) MergePR(ctx context.Context, prID string) (models.PR, bool, error) {
 	const op = "pr_repo.MergePR"
 
 	var pr models.PR
+	var oldStatus string
 
 	err := r.db.pool.QueryRow(ctx, MergePRQuery, prID).Scan(&pr.PRID,
 		&pr.PRName,
 		&pr.AuthorID,
 		&pr.Status,
 		&pr.CreatedAt,
-		&pr.MergedAt)
+		&pr.MergedAt,
+		&oldStatus)
 	if err != nil {
 		r.log.Error(op, slog.String("error: failed to merge PR", err.Error()))
-		return models.PR{}, mapErr(err)
+		return models.PR{}, false, mapErr(err)
 	}
 
+	isMerged := (oldStatus == "OPEN") && (pr.Status == models.MergedStatus)
 	r.log.Debug(op, slog.String("success", "merged PR got"))
-	return pr, nil
+	return pr, isMerged, nil
 }
