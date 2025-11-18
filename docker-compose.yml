@@ -17,8 +17,8 @@ services:
 
   migrator:
     build:
-      context: ..
-      dockerfile: docker/dockerfile.migrator
+      context: .
+      dockerfile: dockerfile.migrator
     environment:
       DB_HOST: db
       DB_PORT: "5432"
@@ -32,8 +32,8 @@ services:
 
   pr_service:
     build:
-      context: ..
-      dockerfile: docker/dockerfile
+      context: .
+      dockerfile: dockerfile
     environment:
       LOGLEVEL: debug
     depends_on:

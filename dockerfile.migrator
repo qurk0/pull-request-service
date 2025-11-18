@@ -11,8 +11,8 @@ FROM alpine:3.20
 WORKDIR /migrations
 COPY --from=builder /go/bin/goose /usr/local/bin/goose
 
-COPY migrations /migrations
-COPY docker/run-migrations.sh /usr/local/bin/run-migrations.sh
+COPY app/migrations /migrations
+COPY ./run-migrations.sh /usr/local/bin/run-migrations.sh
 RUN chmod +x /usr/local/bin/run-migrations.sh
 
 CMD ["/usr/local/bin/run-migrations.sh"]
